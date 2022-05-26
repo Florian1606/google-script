@@ -1,0 +1,78 @@
+
+// sreate a button in the top bar
+function onOpen() {
+    var ui = SpreadsheetApp.getUi();
+    // specify the name of the new tab
+    var menu = ui.createMenu("$HERE");
+    // specify the name of the new action -> eg Save PDF
+    menu.addItem("$HERE");
+    // add menu to UI
+    menu.addToUi();
+}
+// sreate savePDF function
+function savePDF() {
+    // select spreadsheet and active Sheet
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getActiveSheet();
+
+    // get url of the spreadsheet
+    var ssUrl = ss.getUrl();
+    var sheetId = sheet.getSheetId();
+
+    // edit format pdf
+    var url = ssUrl.replace(/\/edit.*$/, '')
+        + '/export?exportformat=pdf&format=pdf'
+        + '&size=LETTER'
+        + '&portrait=true'
+        + '&fitw=true'
+        + '&top_margin=0.50'
+        + '&bottom_margin=0.50'
+        + '&left_margin=0.50'
+        + '&right_margin=0.50'
+        + '&sheetnames=false'
+        + '&printtitle=false'
+        + '&pagenum=false'
+        + '&gridlines=false'
+        + '&fzr=FALSE'
+        + '&gid=' + sheetId;
+
+    // get information in the sheet
+    var docId = sheet.getRange('POS').getValue();
+    var clientName = sheet.getRange('POS').getValue();
+    var docDate = sheet.getRange('POS').getValue();
+
+    //date formatting UK format ?
+    var docDateMMYY = (docDate.getMonth() + 1) + "-" + docDate.getFullYear();
+
+    // build doc name
+    var docName = docId + "INVOICE_" + clientName + "_" + docDateMMYY;
+
+    // CRÉER LE PDF A PARTIR DE L'URL
+
+    // authent
+    var token = ScriptApp.getOAuthToken();
+    var docurl = UrlFetchApp.fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    var pdf = docurl.getAs('application/pdf').setName(docName);
+
+    var file = DriveApp.createFile(pdf);
+
+
+    // Move PDF file in the good folder  
+    // replace folder id -> eg  https://drive.google.com/open?id=XXXXXXXXXXXXXXXXXXXXXXXXXXX
+    var folder = DriveApp.getFolderById("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    var finalFile = file.moveTo(folder);
+
+
+
+    // get the link
+    var docUrl = finalFile.getUrl();
+
+    // add url to the Document Management System (DMS)
+    // name of the sheet eg DMS
+    var sheetGed = ss.getSheetByName('DMS');
+    sheetGed.appendRow([new Date(), docId, docUrl, docName]);
+    // alert message
+    var ui = SpreadsheetApp.getUi();
+    ui.alert('Well done.');
+
+}
